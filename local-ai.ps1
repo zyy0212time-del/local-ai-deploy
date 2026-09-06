@@ -20,7 +20,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('install', 'start', 'stop', 'status', 'doctor', 'models', 'profile', 'update')]
+    [ValidateSet('install', 'start', 'stop', 'status', 'doctor', 'models', 'profile', 'update', 'uninstall')]
     [string]$Command = 'status',
 
     [string]$Model,
@@ -28,6 +28,7 @@ param(
     [int]$Port = 0,
     [switch]$DryRun,
     [switch]$Yes,
+    [switch]$RemoveModels,
     [string]$Root = ''
 )
 
@@ -84,11 +85,33 @@ function Get-LaiPlanForInstall {
     return [pscustomobject]@{ hw = $hw; profile = $profile; model = $model; plan = $plan }
 }
 
+function Show-LaiEndpoints {
+    <#
+    Final success output: browser Chat (llama-server built-in Web UI at the
+    server root) and the OpenAI-compatible API base (/v1) are deliberately
+    distinguished — /v1 is not a web page.
+    #>
+    param([Parameter(Mandatory)][string]$Host_, [Parameter(Mandatory)][int]$Port, [Parameter(Mandatory)][string]$Alias)
+    Write-Host ""
+    Write-Host "Chat in browser:"
+    Write-Host ("  http://{0}:{1}/" -f $Host_, $Port)
+    Write-Host ""
+    Write-Host "OpenAI-compatible API:"
+    Write-Host ("  http://{0}:{1}/v1" -f $Host_, $Port)
+    Write-Host ""
+    Write-Host "Model:"
+    Write-Host ("  {0}" -f $Alias)
+    Write-Host ""
+    Write-Host "Commands:"
+    Write-Host "  .\local-ai.ps1 status"
+    Write-Host "  .\local-ai.ps1 stop"
+    Write-Host "  .\local-ai.ps1 doctor"
+}
+
 function Show-Plan {
     param([Parameter(Mandatory)]$Ctx)
     $hw = $Ctx.hw
     Write-Host ""
-    Write-Host "Hardware:" -ForegroundColor Cyan
     Write-Host ("  GPU : {0}" -f $hw.gpu_name)
     Write-Host ("  VRAM: {0} GB" -f $hw.vram_gb)
     Write-Host ("  RAM : {0} GB" -f $hw.ram_gb)
@@ -155,7 +178,7 @@ switch ($Command) {
             Write-LaiInfo "downloading llama.cpp $($runtimeManifest.version) ($($variant.id))..."
             $zipPath = Join-Path $Paths.downloads $variant.asset
             $rd = Invoke-LaiDownload -Url $variant.url -DestinationPath $zipPath `
-                -ExpectedSha256 $null -ExpectedSize ([long]$variant.size_bytes) `
+                -ExpectedSha256 $variant.sha256 -ExpectedSize ([long]$variant.size_bytes) `
                 -DownloadsDir $Paths.downloads -ArtifactId ("runtime-" + $variant.id)
             if (-not $rd.ok) { Write-LaiError ("runtime download failed: {0}" -f $rd.error); exit 1 }
             Write-LaiInfo "extracting runtime..."
@@ -166,9 +189,10 @@ switch ($Command) {
 
         # 2) model
         if (Test-Path -LiteralPath $modelDest) {
-            Write-LaiInfo "model already present; verifying..."
+            Write-LaiInfo "model already present; verifying SHA256..."
             $h = Get-LaiFileSha256 -Path $modelDest
             if ($h -ne $ctx.model.sha256) { Write-LaiError "existing model SHA mismatch; refusing to use it"; exit 1 }
+            Write-LaiInfo "model verified (SHA256 match)"
         } else {
             Write-LaiInfo "downloading model ($([Math]::Round($ctx.model.size_bytes/1GB,2)) GB)..."
             $murl = "https://huggingface.co/{0}/resolve/{1}/{2}" -f $ctx.model.source_repo, $ctx.model.revision, $ctx.model.filename
@@ -182,6 +206,31 @@ switch ($Command) {
                 -DownloadsDir $Paths.downloads -ArtifactId ("model-" + $ctx.model.id) -ProgressWriter $progress
             if (-not $md.ok) { Write-LaiError ("model download failed: {0}" -f $md.error); exit 1 }
             Write-LaiInfo "model INSTALLED (size + SHA256 verified)"
+        }
+
+        # 2b) multimodal projector — must exist and verify before launch, otherwise
+        # the server would start with a dangling --mmproj path
+        if ($ctx.model.multimodal -and $ctx.model.mmproj) {
+            $mmDest = $ctx.plan.args.mmproj_path
+            $mmSha = $ctx.model.mmproj.sha256
+            if (Test-Path -LiteralPath $mmDest) {
+                if ($mmSha) {
+                    $h = Get-LaiFileSha256 -Path $mmDest
+                    if ($h -ne $mmSha) { Write-LaiError "existing mmproj SHA mismatch; refusing to use it"; exit 1 }
+                    Write-LaiInfo "mmproj verified (SHA256 match)"
+                }
+            } elseif ($mmSha) {
+                Write-LaiInfo "downloading mmproj ($([Math]::Round($ctx.model.mmproj.size_bytes/1MB)) MB)..."
+                $mmUrl = "https://huggingface.co/{0}/resolve/{1}/{2}" -f $ctx.model.source_repo, $ctx.model.revision, $ctx.model.mmproj.filename
+                $mmd = Invoke-LaiDownload -Url $mmUrl -DestinationPath $mmDest `
+                    -ExpectedSha256 $mmSha -ExpectedSize ([long]$ctx.model.mmproj.size_bytes) `
+                    -DownloadsDir $Paths.downloads -ArtifactId ("mmproj-" + $ctx.model.id)
+                if (-not $mmd.ok) { Write-LaiError ("mmproj download failed: {0}" -f $mmd.error); exit 1 }
+                Write-LaiInfo "mmproj INSTALLED (size + SHA256 verified)"
+            } else {
+                Write-LaiWarn "mmproj not present and not verifiable in manifest; proceeding text-only (no --mmproj)"
+                $ctx.plan.args.mmproj_path = $null
+            }
         }
 
         # 3) config
@@ -219,15 +268,9 @@ switch ($Command) {
             exit 1
         }
         Write-Host ""
-        Write-Host "READY" -ForegroundColor Green
-        Write-Host ("  API     : http://{0}:{1}/v1" -f $ctx.plan.args.host, $ctx.plan.args.port)
-        Write-Host ("  alias   : {0}" -f $ctx.plan.args.model_alias)
-        Write-Host ("  model   : {0}" -f $modelDest)
         Write-Host ""
-        Write-Host "Commands:"
-        Write-Host "  .\local-ai.ps1 status"
-        Write-Host "  .\local-ai.ps1 stop"
-        Write-Host "  .\local-ai.ps1 doctor"
+        Write-Host "Local AI is running" -ForegroundColor Green
+        Show-LaiEndpoints -Host_ $ctx.plan.args.host -Port $ctx.plan.args.port -Alias $ctx.plan.args.model_alias
         exit 0
     }
 
@@ -238,22 +281,23 @@ switch ($Command) {
         if ($existing -and (Test-LaiOwnedProcess -State $existing -Root $Paths.root)) {
             Write-Host "already running (pid $($existing.pid))"; exit 0
         }
-        $model = Get-LaiModelManifest -RepoRoot $RepoRoot -Id $cfg.model
-        $profile = Get-LaiProfiles -RepoRoot $RepoRoot | Where-Object { $_.id -eq $cfg.profile } | Select-Object -First 1
+        $m = Get-LaiModelManifest -RepoRoot $RepoRoot -Id $cfg.model
+        $prof = Get-LaiProfiles -RepoRoot $RepoRoot | Where-Object { $_.id -eq $cfg.profile } | Select-Object -First 1
         $hw = Get-LaiHardware
-        $plan = Get-LaiPlan -Profile $profile -Model $model -Hw $hw -Port ([int]$cfg.port)
+        $plan = Get-LaiPlan -Profile $prof -Model $m -Hw $hw -Port ([int]$cfg.port)
         $plan.args.model_path = $cfg.model_path
-        if ($model.multimodal -and $model.mmproj) { $plan.args.mmproj_path = (Join-Path $Paths.models $model.mmproj.filename) }
+        if ($m.multimodal -and $m.mmproj) { $plan.args.mmproj_path = (Join-Path $Paths.models $m.mmproj.filename) }
         $proc = LlamaCpp.Start-Server -Plan $plan -Paths $Paths
         Save-LaiServerState -State @{
             pid = $proc.Id; exe = (LlamaCpp.Get-ServerPath -Paths $Paths)
-            model = $model.id; port = $plan.args.port
+            model = $m.id; port = $plan.args.port
             started = (Get-Date).ToString('o'); root = $Paths.root
         } -Root $Paths.root
         $health = LlamaCpp.Invoke-HealthCheck -Plan $plan -Paths $Paths
         foreach ($c in $health.checks) { Write-Host ("  {0,-24} {1}" -f $c.name, $(if ($c.ok) { 'PASS' } else { 'FAIL' })) }
         if (-not $health.ok) { Stop-LaiServerProcess -Root $Paths.root | Out-Null; exit 1 }
-        Write-Host "started on http://$($plan.args.host):$($plan.args.port)/v1"
+        Write-Host "Local AI is running"
+        Show-LaiEndpoints -Host_ $plan.args.host -Port $plan.args.port -Alias $plan.args.model_alias
         exit 0
     }
 
@@ -271,6 +315,7 @@ switch ($Command) {
         Write-Host ("runtime : {0} {1}" -f $cfg.runtime, $cfg.runtime_ver)
         if ($state -and (Test-LaiOwnedProcess -State $state -Root $Paths.root)) {
             Write-Host ("status  : RUNNING (pid {0}, port {1})" -f $state.pid, $state.port) -ForegroundColor Green
+            Write-Host ("chat    : http://127.0.0.1:{0}/" -f $state.port)
             Write-Host ("api     : http://127.0.0.1:{0}/v1" -f $state.port)
         } else {
             Write-Host "status  : STOPPED"
@@ -313,6 +358,39 @@ switch ($Command) {
     'update' {
         Write-Host "v0.1: model revisions are pinned and are NOT auto-updated."
         Write-Host "Runtime update is not implemented in v0.1 (see docs/SCOPE.md)."
+        exit 0
+    }
+
+    'uninstall' {
+        # Safe uninstall: stops the owned server, removes runtime + config + state.
+        # Downloaded MODELS are only removed with -RemoveModels (multi-GB, may
+        # have taken hours to fetch).
+        # stop owned server (refuses foreign processes)
+        $st = Stop-LaiServerProcess -Root $Paths.root
+        if (-not $st.ok) { Write-LaiError $st.message; exit 1 }
+        Write-Host $st.message
+        foreach ($sub in @('runtime', 'config', 'logs', 'downloads')) {
+            $p = Join-Path $Paths.root $sub
+            if (Test-Path -LiteralPath $p) {
+                Remove-Item -LiteralPath $p -Recurse -Force
+                Write-Host ("removed {0}" -f $sub)
+            }
+        }
+        if ($RemoveModels) {
+            $mp = Join-Path $Paths.root 'models'
+            if (Test-Path -LiteralPath $mp) {
+                $gb = [Math]::Round(((Get-ChildItem -LiteralPath $mp -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum) / 1GB, 2)
+                Remove-Item -LiteralPath $mp -Recurse -Force
+                Write-Host ("removed models ({0} GB)" -f $gb)
+            }
+            $sp = Join-Path $Paths.root 'state'
+            if (Test-Path -LiteralPath $sp) { Remove-Item -LiteralPath $sp -Recurse -Force; Write-Host "removed state" }
+            Write-Host "uninstall complete (install root kept, now empty)"
+        } else {
+            Write-Host "uninstall complete. Downloaded models kept at:"
+            Write-Host ("  {0}" -f $Paths.models)
+            Write-Host "Remove them explicitly with: .\local-ai.ps1 uninstall -RemoveModels"
+        }
         exit 0
     }
 }

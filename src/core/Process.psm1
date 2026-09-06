@@ -59,39 +59,61 @@ function Select-LaiPort {
     return $null
 }
 
+function Get-LaiOwnedServerProcesses {
+    <#
+    Path-ownership discovery: any running process whose executable lives under
+    <root>\runtime\ belongs to this install. This is the fallback when the
+    state file is missing or stale — path evidence is still ownership evidence.
+    #>
+    param([string]$Root = (Get-LaiInstallRoot))
+    $runtimeRoot = (Join-Path $Root 'runtime').ToLowerInvariant().TrimEnd('\')
+    $out = @()
+    foreach ($p in (Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue)) {
+        try {
+            if ($p.Path -and $p.Path.ToLowerInvariant().StartsWith($runtimeRoot)) { $out += $p }
+        } catch { }
+    }
+    return , $out
+}
+
 function Stop-LaiServerProcess {
     param([string]$Root = (Get-LaiInstallRoot), [int]$TimeoutSeconds = 20)
+    $targets = @()
     $state = Get-LaiServerState -Root $Root
-    if (-not $state) {
-        return [pscustomobject]@{ ok = $true; message = 'no server state; nothing to stop'; stopped = $false }
-    }
-    if (-not (Test-LaiOwnedProcess -State $state -Root $Root)) {
+    if ($state -and (Test-LaiOwnedProcess -State $state -Root $Root)) {
+        $targets += (Get-Process -Id ([int]$state.pid) -ErrorAction SilentlyContinue)
+    } elseif ($state -and $state.pid) {
         $proc = Get-Process -Id ([int]$state.pid) -ErrorAction SilentlyContinue
-        if (-not $proc) {
-            # process is gone — nothing to stop; stale state is safe to clear
-            Clear-LaiServerState -Root $Root
-            return [pscustomobject]@{ ok = $true; stopped = $false; message = "pid $($state.pid) is not running; cleared stale state" }
+        if ($proc) {
+            return [pscustomobject]@{
+                ok      = $false
+                stopped = $false
+                message = "refusing to stop: pid $($state.pid) is alive but not owned by this install (ownership cannot be proven)"
+            }
         }
-        return [pscustomobject]@{
-            ok      = $false
-            stopped = $false
-            message = "refusing to stop: pid $($state.pid) is alive but not owned by this install (ownership cannot be proven)"
-        }
+        Clear-LaiServerState -Root $Root
     }
-    $proc = Get-Process -Id ([int]$state.pid) -ErrorAction SilentlyContinue
-    if ($proc) {
+    # path-ownership fallback (also covers the state-recorded pid via its path)
+    foreach ($p in (Get-LaiOwnedServerProcesses -Root $Root)) {
+        if ($targets -notcontains $p) { $targets += $p }
+    }
+    if ($targets.Count -eq 0) {
+        if ($state) { Clear-LaiServerState -Root $Root }
+        return [pscustomobject]@{ ok = $true; stopped = $false; message = 'no owned server process running' }
+    }
+    foreach ($proc in $targets) {
         try { $proc.CloseMainWindow() | Out-Null } catch { }
         if (-not $proc.WaitForExit(5000)) {
-            Stop-Process -Id ([int]$state.pid) -Force
-            # wait for actual exit so callers can rely on termination
+            Stop-Process -Id $proc.Id -Force
             $deadline = (Get-Date).AddSeconds(10)
-            while ((Get-Process -Id ([int]$state.pid) -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $deadline)) {
+            while ((Get-Process -Id $proc.Id -ErrorAction SilentlyContinue) -and ((Get-Date) -lt $deadline)) {
                 Start-Sleep -Milliseconds 200
             }
         }
     }
     Clear-LaiServerState -Root $Root
-    return [pscustomobject]@{ ok = $true; stopped = $true; message = "stopped pid $($state.pid)" }
+    $ids = ($targets | ForEach-Object { $_.Id }) -join ', '
+    return [pscustomobject]@{ ok = $true; stopped = $true; message = "stopped pid(s) $ids" }
 }
 
 Export-ModuleMember -Function Get-LaiServerState, Save-LaiServerState,

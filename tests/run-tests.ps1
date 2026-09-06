@@ -219,6 +219,17 @@ $vo = LlamaCpp.Select-Variant -RuntimeManifest $rtm -Hw (New-FakeHw -GpuName 'NV
 Assert-Equal -Expected 'cuda-12.4' -Actual $vo.id -Name 'older NVIDIA -> CUDA 12.4'
 
 Write-Host ""
+Write-Host "== endpoint UX (Chat vs API) ==" -ForegroundColor Cyan
+$chatUrl = "http://{0}:{1}/" -f $plan.args.host, $plan.args.port
+$apiUrl = "http://{0}:{1}/v1" -f $plan.args.host, $plan.args.port
+Assert-True -Condition ($chatUrl.EndsWith('/')) -Name 'chat URL is the server root'
+Assert-True -Condition ($apiUrl.EndsWith('/v1')) -Name 'API URL is the /v1 base'
+Assert-True -Condition ($chatUrl -ne $apiUrl) -Name 'chat and API URLs are distinct'
+Assert-True -Condition ($chatUrl -match '^http://127\.0\.0\.1:') -Name 'chat URL localhost-only'
+Assert-True -Condition ($chatUrl -notmatch '0\.0\.0\.0') -Name 'no 0.0.0.0 in chat URL'
+Assert-Equal -Expected 'huihui-nex' -Actual $plan.args.model_alias -Name 'alias present for endpoint output'
+
+Write-Host ""
 Write-Host "== dashboard ==" -ForegroundColor Cyan
 Write-Host ("  passed: {0}  failed: {1}" -f $script:Passed, $script:Failed)
 if ($script:Failed -gt 0) {

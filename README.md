@@ -38,6 +38,24 @@ does all of the following:
 You never need to: find a GGUF, guess a quantization, calculate VRAM
 fit, hand-write launcher flags, or configure an API endpoint.
 
+## Two entry points after install
+
+```text
+Chat in browser:
+http://127.0.0.1:<port>/          <- llama-server's built-in Web UI
+
+OpenAI-compatible API:
+http://127.0.0.1:<port>/v1        <- API base URL for clients/scripts
+```
+
+These are different things: the **root** URL is the chat page served by
+llama-server itself; **`/v1`** is the API base for OpenAI-compatible
+clients, scripts and applications — it is not a web page.
+
+v0.1 installs the curated model and the llama.cpp runtime — nothing else.
+No agent harness, no memory system, no MCP orchestration, no external
+Web UI dependency.
+
 ## Who this is for
 
 Windows 10/11 users with a consumer NVIDIA GPU (8–16 GB VRAM class) and

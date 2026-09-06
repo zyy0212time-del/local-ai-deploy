@@ -168,8 +168,17 @@ function Invoke-LaiDownload {
             }
             $result.resumed = ($startBytes -gt 0)
         } elseif (Test-Path -LiteralPath $part) {
-            $result.error = "partial file present without matching state; refusing to resume unknown partial"
-            return $result
+            # partial without matching (or any) state. We hold the singleton
+            # lock, so ownership of this partial is proven — safe to restart it
+            # from zero. Full mode overwrites it via FileMode.Create; nothing is
+            # deleted silently and no unrelated file is touched.
+            $startBytes = 0L
+        }
+        # write state up-front so an interruption at ANY point leaves a
+        # resumable, attributable partial
+        Write-LaiDownloadState -PartPath $part -State @{
+            url = $Url; expected_size = $ExpectedSize; expected_sha256 = $ExpectedSha256
+            bytes = $startBytes; updated = (Get-Date).ToString('o'); pid = $PID
         }
 
         $mode = 'full'
@@ -203,10 +212,18 @@ function Invoke-LaiDownload {
                 $buffer = New-Object byte[] (1MB)
                 $written = $startBytes
                 $lastReport = 0
+                $lastState = $written
                 try {
                     while (($n = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
                         $fs.Write($buffer, 0, $n)
                         $written += $n
+                        if (($written - $lastState) -gt (64MB)) {
+                            $lastState = $written
+                            Write-LaiDownloadState -PartPath $part -State @{
+                                url = $Url; expected_size = $ExpectedSize; expected_sha256 = $ExpectedSha256
+                                bytes = $written; updated = (Get-Date).ToString('o'); pid = $PID
+                            }
+                        }
                         if ($ProgressWriter -and ($written - $lastReport) -gt (50MB)) {
                             $lastReport = $written
                             & $ProgressWriter $written $ExpectedSize

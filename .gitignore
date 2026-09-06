@@ -2,6 +2,8 @@
 *.log
 *.part
 *.part.state
+*.zip
 downloads/
 state/
 __pycache__/
+tests/fixtures/runtime-dl/

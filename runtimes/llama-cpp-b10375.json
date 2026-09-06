@@ -14,8 +14,9 @@
       "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-13.3-x64.zip",
       "size_bytes": 146639481,
       "size_source": "GitHub release asset API (exact, verified 2026-09-06)",
-      "sha256": null,
-      "sha256_status": "NOT_PRESENT — upstream publishes no per-asset checksum; verified by archive integrity, expected asset size, and post-install `llama-server --version` check",
+      "sha256": "5e352df7d32abe99427160d26069e8eedab79ae08fbfe737616c6cd62837975a",
+      "sha256_source": "locally computed over the full downloaded asset on 2026-09-06 (upstream publishes no per-asset checksum); enforced by the download SHA gate",
+      "sha256_status": "VERIFIED",
       "requires": "NVIDIA driver supporting CUDA 13.x",
       "preferred_for": "modern NVIDIA GPUs (Blackwell / Ada / newer Ampere)"
     },
@@ -27,7 +28,7 @@
       "size_bytes": 250753377,
       "size_source": "GitHub release asset API (exact, verified 2026-09-06)",
       "sha256": null,
-      "sha256_status": "NOT_PRESENT — see cuda-13.3 note",
+      "sha256_status": "NOT_VERIFIED — fallback variant; will be pinned the same way before it can be selected",
       "requires": "NVIDIA driver supporting CUDA 12.x",
       "preferred_for": "older NVIDIA GPUs not supported by CUDA 13 builds"
     }

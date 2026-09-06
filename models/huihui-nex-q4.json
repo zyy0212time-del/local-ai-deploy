@@ -20,7 +20,7 @@
   "architecture": "qwen3_5_moe (MoE ~35B class, ~3B active)",
   "model_alias": "huihui-nex",
   "metadata_evidence": {
-    "sha256": "local SHA256SUMS.txt + Reasoning Budget Arena extension record + HF repo head revision (three-way match)",
+    "sha256": "recomputed locally over the full 21,166,757,888-byte file during the v0.1 real-install validation on 2026-09-06 (matches local SHA256SUMS.txt, the Reasoning Budget Arena extension record, and the HF pinned revision — three-way match)",
     "size": "local file + HF resolve x-linked-size (21166757888)"
   },
   "benchmark": {

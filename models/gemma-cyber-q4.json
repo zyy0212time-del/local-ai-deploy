@@ -21,7 +21,7 @@
   "architecture": "gemma4 (26B class, A4B MoE)",
   "model_alias": "gemma-cyber",
   "metadata_evidence": {
-    "sha256": "Reasoning Budget Arena frozen model-artifacts.csv record (exact artifact hash match 2026-09-03)",
+    "sha256": "independently recomputed locally over the full 16.8 GB file on 2026-09-06 (matches the Reasoning Budget Arena frozen model-artifacts.csv record exactly)",
     "size": "local file size + Arena record (16796015520)",
     "revision": "HF API repo head (2026-09-05)"
   },

@@ -145,9 +145,11 @@ function LlamaCpp.Invoke-HealthCheck {
     $modelsUrl = LlamaCpp.Get-ModelsUrl -Plan $Plan
     $aliasOk = $false
     try {
-        $m = (Invoke-WebRequest -Uri $modelsUrl -UseBasicParsing -TimeoutSec 10).Content | ConvertFrom-Json
-        $ids = @($m.data | ForEach-Object { $_.id })
-        $aliasOk = ($ids -contains $Plan.args.model_alias)
+        $modelsResp = (Invoke-WebRequest -Uri $modelsUrl -UseBasicParsing -TimeoutSec 10).Content | ConvertFrom-Json
+        if ($modelsResp -and $modelsResp.data) {
+            $ids = @($modelsResp.data | ForEach-Object { $_.id })
+            $aliasOk = ($ids -contains $Plan.args.model_alias)
+        }
     } catch { }
     $checks += [pscustomobject]@{ name = 'model_alias_loaded'; ok = $aliasOk }
 

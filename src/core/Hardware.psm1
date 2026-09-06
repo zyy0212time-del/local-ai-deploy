@@ -94,7 +94,7 @@ function Test-LaiHardwareSupported {
     elseif ($Hw.vram_gb -lt 6) { $reasons += "VRAM below 6 GB (v0.1 targets 8-16 GB)" }
     return [pscustomobject]@{
         supported = ($reasons.Count -eq 0)
-        reasons   = , $reasons
+        reasons   = $reasons
     }
 }
 
