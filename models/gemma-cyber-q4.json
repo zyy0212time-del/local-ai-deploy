@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "id": "gemma-cyber-q4",
+  "display_name": "Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced Q4_K_M",
+  "category": "cyber-uncensored",
+  "source_repo": "HauhauCS/Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-MTP",
+  "revision": "f9093662a2e7ae0503f637088bc96f77a1a70c83",
+  "filename": "Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+  "sha256": "3c13133469e431312fffb8b1d9c85ae42199e6bb5746ea1da84e8ddf2097d73c",
+  "size_bytes": 16796015520,
+  "license": "gemma",
+  "license_evidence": "HF model card (checked 2026-09-03 via Reasoning Budget Arena model-artifacts record)",
+  "runtime": ["llama.cpp"],
+  "multimodal": true,
+  "mmproj": {
+    "filename": "mmproj-Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf",
+    "sha256": null,
+    "size_bytes": 1194827776,
+    "sha256_status": "NOT_VERIFIED — required only for image input; text-only deployment does not use it"
+  },
+  "architecture": "gemma4 (26B class, A4B MoE)",
+  "model_alias": "gemma-cyber",
+  "metadata_evidence": {
+    "sha256": "Reasoning Budget Arena frozen model-artifacts.csv record (exact artifact hash match 2026-09-03)",
+    "size": "local file size + Arena record (16796015520)",
+    "revision": "HF API repo head (2026-09-05)"
+  },
+  "benchmark": {
+    "source": "reasoning-budget-arena",
+    "url": "https://github.com/zyy0212time-del/reasoning-budget-arena",
+    "protocol": "Formal C (ctx 8192, reasoning budget 4096)",
+    "formal_c": {
+      "general": 414.5,
+      "cyber": 291.5,
+      "overall": 706.0,
+      "overall_max": 800
+    },
+    "note": "frozen six-model field, contestant C; scores locked before identity reveal"
+  }
+}

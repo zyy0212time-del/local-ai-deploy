@@ -1,0 +1,7 @@
+# local state never committed
+*.log
+*.part
+*.part.state
+downloads/
+state/
+__pycache__/

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "huihui-nex-q4",
+  "display_name": "Huihui Nex N2 Mini Abliterated Q4_K_M",
+  "category": "balanced",
+  "source_repo": "quant-mind/Huihui-Nex-N2-mini-abliterated-GGUF",
+  "revision": "22be29be9d6908060502f4ac984650a917afdbe6",
+  "filename": "Huihui-Nex-N2-mini-abliterated-Q4_K_M.gguf",
+  "sha256": "8e38d2a090ea8a850745032b212a96997d0dafeb4cadd74b840a599e2c70e8a0",
+  "size_bytes": 21166757888,
+  "license": "apache-2.0",
+  "license_evidence": "HF repo license tag (checked 2026-09-05)",
+  "runtime": ["llama.cpp"],
+  "multimodal": true,
+  "mmproj": {
+    "filename": "mmproj-Huihui-Nex-N2-mini-abliterated-f16.gguf",
+    "sha256": "3697a99cef08015571b0ce4ac03cea2c5192c11b5ef391c7d072f005d55a9b57",
+    "size_bytes": 899283264
+  },
+  "architecture": "qwen3_5_moe (MoE ~35B class, ~3B active)",
+  "model_alias": "huihui-nex",
+  "metadata_evidence": {
+    "sha256": "local SHA256SUMS.txt + Reasoning Budget Arena extension record + HF repo head revision (three-way match)",
+    "size": "local file + HF resolve x-linked-size (21166757888)"
+  },
+  "benchmark": {
+    "source": "reasoning-budget-arena",
+    "url": "https://github.com/zyy0212time-del/reasoning-budget-arena/tree/main/extensions/huihui-nex-n2-mini-abliterated-q4",
+    "protocol": "Formal C (ctx 8192, reasoning budget 4096)",
+    "formal_c": {
+      "general": 395.0,
+      "cyber": 274.5,
+      "overall": 669.5,
+      "overall_max": 800
+    },
+    "note": "post-release extension score; locked before identity reveal; not part of the frozen six-model ranking"
+  }
+}

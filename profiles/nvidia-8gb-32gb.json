@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "nvidia-8gb-32gb",
+  "display_name": "Balanced / 8GB VRAM + 32GB RAM",
+  "match": {
+    "os": ["Windows 10", "Windows 11"],
+    "gpu_vendor": "NVIDIA",
+    "vram_gb": { "min": 6.5, "max": 9.5 },
+    "ram_gb": { "min": 24, "max": 48 }
+  },
+  "recommended_model": "huihui-nex-q4",
+  "runtime": "llama.cpp",
+  "planner": {
+    "ctx": 8192,
+    "parallel": 1,
+    "flash_attention": true,
+    "kv_cache_type": "q8_0",
+    "gpu_layers": "auto",
+    "gpu_layers_override": -1,
+    "cpu_moe": "auto",
+    "threads": "auto",
+    "batch_size": 2048,
+    "ubatch_size": 512,
+    "port": 18100,
+    "host": "127.0.0.1"
+  },
+  "expected_class": "medium/large local GGUF with partial CPU offload",
+  "notes": "Conservative default: the planner prefers a configuration that loads reliably. On 8 GB VRAM a ~20-21 GB Q4_K_M MoE model does not fit fully; llama.cpp offloads what it can and the remainder runs on system RAM. Expect lower decode throughput than VRAM-resident models. KV cache q8_0 requires head_dim divisible by 32 — all curated models satisfy this; a non-quantized fallback (f16) exists if a future model does not."
+}

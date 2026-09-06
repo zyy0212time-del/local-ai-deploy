@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "nvidia-12gb-32gb",
+  "display_name": "Balanced / 12GB VRAM + 32GB RAM",
+  "match": {
+    "os": ["Windows 10", "Windows 11"],
+    "gpu_vendor": "NVIDIA",
+    "vram_gb": { "min": 9.5, "max": 13.5 },
+    "ram_gb": { "min": 24, "max": 64 }
+  },
+  "recommended_model": "gemma-cyber-q4",
+  "runtime": "llama.cpp",
+  "planner": {
+    "ctx": 8192,
+    "parallel": 1,
+    "flash_attention": true,
+    "kv_cache_type": "q8_0",
+    "gpu_layers": "auto",
+    "gpu_layers_override": -1,
+    "cpu_moe": "auto",
+    "threads": "auto",
+    "batch_size": 2048,
+    "ubatch_size": 512,
+    "port": 18100,
+    "host": "127.0.0.1"
+  },
+  "expected_class": "large local GGUF with partial CPU offload",
+  "notes": "More VRAM headroom than the 8 GB profile; the 26B-class Q4_K_M still will not fully fit, so mixed GPU/RAM execution remains expected."
+}

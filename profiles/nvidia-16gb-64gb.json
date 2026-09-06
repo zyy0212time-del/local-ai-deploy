@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "nvidia-16gb-64gb",
+  "display_name": "Balanced / 16GB VRAM + 64GB RAM",
+  "match": {
+    "os": ["Windows 10", "Windows 11"],
+    "gpu_vendor": "NVIDIA",
+    "vram_gb": { "min": 13.5, "max": 24 },
+    "ram_gb": { "min": 32, "max": 128 }
+  },
+  "recommended_model": "gemma-cyber-q4",
+  "runtime": "llama.cpp",
+  "planner": {
+    "ctx": 16384,
+    "parallel": 1,
+    "flash_attention": true,
+    "kv_cache_type": "q8_0",
+    "gpu_layers": "auto",
+    "gpu_layers_override": -1,
+    "cpu_moe": "auto",
+    "threads": "auto",
+    "batch_size": 4096,
+    "ubatch_size": 1024,
+    "port": 18100,
+    "host": "127.0.0.1"
+  },
+  "expected_class": "large local GGUF, mostly VRAM-resident",
+  "notes": "Higher context is enabled only where VRAM and RAM both allow it. Still conservative: no speculative decoding, no aggressive cache quantization beyond q8_0."
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "id": "llama-cpp",
+  "version": "b10375",
+  "upstream": "https://github.com/ggml-org/llama.cpp",
+  "release_url": "https://github.com/ggml-org/llama.cpp/releases/tag/b10375",
+  "published_at": "2026-08-12T12:18:24Z",
+  "pinning_policy": "pinned build tag; never fetch 'latest' implicitly. `local-ai update` may move this pin explicitly.",
+  "variants": [
+    {
+      "id": "cuda-13.3",
+      "platform": "win-x64",
+      "asset": "llama-b10375-bin-win-cuda-13.3-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-13.3-x64.zip",
+      "size_bytes": 146639481,
+      "size_source": "GitHub release asset API (exact, verified 2026-09-06)",
+      "sha256": null,
+      "sha256_status": "NOT_PRESENT — upstream publishes no per-asset checksum; verified by archive integrity, expected asset size, and post-install `llama-server --version` check",
+      "requires": "NVIDIA driver supporting CUDA 13.x",
+      "preferred_for": "modern NVIDIA GPUs (Blackwell / Ada / newer Ampere)"
+    },
+    {
+      "id": "cuda-12.4",
+      "platform": "win-x64",
+      "asset": "llama-b10375-bin-win-cuda-12.4-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-12.4-x64.zip",
+      "size_bytes": 250753377,
+      "size_source": "GitHub release asset API (exact, verified 2026-09-06)",
+      "sha256": null,
+      "sha256_status": "NOT_PRESENT — see cuda-13.3 note",
+      "requires": "NVIDIA driver supporting CUDA 12.x",
+      "preferred_for": "older NVIDIA GPUs not supported by CUDA 13 builds"
+    }
+  ],
+  "extract_layout": "zip contains llama-server.exe, llama-cli.exe and backend DLLs at archive root",
+  "server_binary": "llama-server.exe",
+  "api": "OpenAI-compatible ( /v1/chat/completions, /v1/models )",
+  "health_endpoint": "/health",
+  "notes": "Version b10375 is the build used by Reasoning Budget Arena for its frozen Formal C runs, so Arena benchmark evidence is directly applicable to this runtime."
+}

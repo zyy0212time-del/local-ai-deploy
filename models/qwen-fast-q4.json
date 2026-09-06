@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "qwen-fast-q4",
+  "display_name": "Qwen3.8-9B-abliterated-25 Q4_K_M",
+  "category": "fast",
+  "source_repo": "MegaPanchamZ/Qwen3.8-9B-abliterated-25-GGUF",
+  "revision": "d9d405a43b737272a5da6a573e8af7a0eaa20a72",
+  "filename": "Qwen3.8-9B-abliterated-25.Q4_K_M.gguf",
+  "sha256": "542d41f6cf4cc450152651d0d8099bd4856f919f1a8909c3037976480cb894cf",
+  "size_bytes": 5629108864,
+  "license": "apache-2.0",
+  "license_evidence": "HF model card (checked 2026-09-03 via Reasoning Budget Arena model-artifacts record)",
+  "runtime": ["llama.cpp"],
+  "multimodal": false,
+  "mmproj": null,
+  "architecture": "qwen3.8 dense 9B",
+  "model_alias": "qwen-fast",
+  "metadata_evidence": {
+    "sha256": "Reasoning Budget Arena frozen model-artifacts.csv record (exact artifact hash match 2026-09-03); NOT recomputed locally — no local copy on the authoring machine",
+    "size": "HF resolve x-linked-size (5629108864) cross-checked against Arena record",
+    "revision": "HF API repo head (2026-09-05)"
+  },
+  "benchmark": {
+    "source": "reasoning-budget-arena",
+    "url": "https://github.com/zyy0212time-del/reasoning-budget-arena",
+    "protocol": "Formal C (ctx 8192, reasoning budget 4096)",
+    "formal_c": {
+      "general": 368.5,
+      "cyber": 266.5,
+      "overall": 635.0,
+      "overall_max": 800
+    },
+    "note": "frozen six-model field, contestant F. Selected for the FAST category by size/VRAM fit, not by score: it is the smallest verified candidate and fits fully in 8 GB VRAM, at a clear quality cost versus the 26B/35B-class options"
+  }
+}
