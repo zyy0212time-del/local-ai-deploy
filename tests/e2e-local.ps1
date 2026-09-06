@@ -5,13 +5,14 @@
     Uses:
       - an isolated install root under %TEMP%
       - a TINY GGUF (stories260K, ~1 MB) — no large model is downloaded
-      - an isolated port in the 18100+ range (never 30003/30005/30006/30007)
+      - an isolated port in the 18100+ range, away from any pre-existing
+        service the machine may already run
 
     It verifies: runtime download + extraction, config generation, server
     launch, health gate (process + HTTP + alias + inference), stop ownership.
 
-    It does NOT touch: existing model files, Hermes, vv/fimi, Arena, or any
-    production service.
+    It does NOT touch: existing model files, other local services, or any
+    unrelated production process.
 #>
 [CmdletBinding()]
 param([int]$Port = 18100)

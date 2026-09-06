@@ -130,7 +130,7 @@ Write-Host ""
 Write-Host "== port selection ==" -ForegroundColor Cyan
 $port = Select-LaiPort -Preferred 18100
 Assert-True -Condition ($port -ge 18100) -Name 'port selection returns a port'
-Assert-True -Condition ($port -ne 30007) -Name 'never selects a known production port'
+Assert-True -Condition ($port -lt 18200) -Name 'stays inside the reserved low-collision range'
 $freeProbe = Test-LaiPortFree -Port 18199
 Assert-True -Condition ($freeProbe -is [bool]) -Name 'port probe returns boolean'
 

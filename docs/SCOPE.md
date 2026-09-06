@@ -21,7 +21,7 @@
 - Docker-first or Kubernetes deployment
 - cloud inference
 - model marketplace / arbitrary HuggingFace browser
-- Hermes / vv / fimi integration
+- integration with any private local agent stack
 - agent or tool-loop benchmarking
 - auto-start-on-boot
 - GUI desktop app
