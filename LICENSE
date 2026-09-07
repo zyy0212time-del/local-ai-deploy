@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party components are NOT relicensed by this project:
-
-- llama.cpp runtime binaries are downloaded from the official
-  ggml-org/llama.cpp releases and remain under their upstream MIT license.
-- GGUF model files are downloaded from their respective Hugging Face
-  repositories and remain under the licenses recorded in models/*.json.
-  This project makes no ownership claim over model weights or over
-  model-generated output.

@@ -10,6 +10,13 @@ Model recommendations are grounded in real local evaluation from
 Arena answers *"which model is worth deploying?"*; this project answers
 *"how does a normal user actually get it running?"*.
 
+The deployment assumptions and hardware/runtime decisions behind these
+profiles were developed and validated in the companion
+[Laptop Local AI Stack](https://github.com/zyy0212time-del/laptop-local-ai-stack)
+case study. That study covers one consumer laptop (RTX 5060 Laptop, 8 GB VRAM,
+32 GB RAM), so its measurements describe that machine and are used here as
+engineering evidence — not as a universal performance claim.
+
 > Status: **v0.1.0 — prototype, Windows + NVIDIA + llama.cpp only.**
 > See [docs/SCOPE.md](docs/SCOPE.md) for exactly what is and is not supported.
 
@@ -126,8 +133,11 @@ atomic rename. A partial file is never accepted as a model.
 - one curated model per category; this is not a model marketplace
 - no GUI, no auto-start-on-boot, no agent/tool-loop evaluation
 - performance expectations are stated as hardware classes, not promised t/s
-- runtime archives: upstream publishes no per-asset checksum, so runtime
-  verification is size + extraction + version probe (documented per field)
+- runtime archives: upstream publishes no per-asset checksum, so v0.1 pins
+  SHA-256 values independently computed from the complete official llama.cpp
+  release assets; install-time verification requires the pinned size and
+  SHA-256 to match, and a variant that is not pinned and marked VERIFIED can
+  be neither selected nor installed
 - quantized KV cache (`q8_0`) requires head_dim divisible by 32; the
   curated models satisfy this, exotic models may need `f16`
 
@@ -143,4 +153,6 @@ atomic rename. A partial file is never accepted as a model.
 
 Project code: MIT (see [LICENSE](LICENSE)). Third-party runtimes and
 models remain under their own licenses — attribution per model is in its
-manifest; nothing here relicenses them.
+manifest; nothing here relicenses them. See
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for third-party
+runtime/model attribution.
