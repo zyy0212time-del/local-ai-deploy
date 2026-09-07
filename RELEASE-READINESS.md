@@ -19,8 +19,11 @@ Audit date: 2026-09-06. Status: **READY FOR PUBLIC v0.1 REVIEW**
 1. **Runtime asset SHA256 pinned**: `cuda-13.3` asset re-downloaded in full
    (146,639,481 bytes, size-gate pass) and hashed locally:
    `5e352df7d32abe99427160d26069e8eedab79ae08fbfe737616c6cd62837975a`.
-   The install path now enforces it via the SHA gate. The cuda-12.4 fallback
-   variant remains explicitly NOT_VERIFIED until pinned the same way.
+   The install path now enforces it via the SHA gate. The `cuda-12.4` fallback
+   variant (250,753,377 bytes) was pinned the same way on 2026-09-07:
+   `dd840b604c508b2f57f2ed467f70c711d1840c07b0d09a3bba8f6dfbd8b3da84`, and is
+   now VERIFIED/selectable. A generic fail-closed gate additionally prevents
+   any unpinned runtime variant from being selected or installed (F-01).
 2. **Model manifests re-verified**:
    - BALANCED Huihui: SHA-256 recomputed locally over the full
      21,166,757,888-byte file during the real install — matched the pinned
@@ -92,8 +95,13 @@ Audit date: 2026-09-06. Status: **READY FOR PUBLIC v0.1 REVIEW**
 
 ## Known limitations (documented, not gates)
 
-- cuda-12.4 fallback runtime variant: SHA not yet pinned (documented in the
-  runtime manifest; the variant cannot be selected until pinned).
+- Both runtime variants are now integrity-pinned (cuda-13.3 and cuda-12.4,
+  SHA-256 computed locally over the complete official assets). A generic
+  fail-closed gate in `LlamaCpp.Test-VariantEligible` / `Select-Variant` /
+  the install path means a variant with a missing, malformed or non-VERIFIED
+  sha256 can be neither selected nor installed: install would fail with
+  `Runtime variant '<id>' is not integrity-pinned and cannot be installed.`
+  Size-only runtime success is no longer possible.
 - Quantized KV cache (q8_0) requires head_dim divisible by 32 (documented).
 - Full 20 GB network download itself was not completed end-to-end due to
   measured HF throughput; integrity path proven by the SHA gate + the 140 MB

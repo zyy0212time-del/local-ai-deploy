@@ -12,12 +12,37 @@ function LlamaCpp.Get-ServerPath {
     return (Join-Path $Paths.runtime 'llama-server.exe')
 }
 
+function LlamaCpp.Test-VariantEligible {
+    <#
+    F-01 fail-closed gate (P0).
+    A runtime variant may only be SELECTED or INSTALLED when it is
+    integrity-pinned: a non-empty 64-hex sha256 AND sha256_status == VERIFIED.
+    Size-only verification is NEVER sufficient for a runtime artifact.
+    #>
+    param([Parameter(Mandatory)]$Variant)
+    if (-not $Variant) { return $false }
+    $sha = [string]$Variant.sha256
+    $status = [string]$Variant.sha256_status
+    if ([string]::IsNullOrWhiteSpace($sha)) { return $false }
+    if ($sha -notmatch '^[0-9a-f]{64}$') { return $false }
+    if ($status -ne 'VERIFIED') { return $false }
+    return $true
+}
+
+function LlamaCpp.Assert-VariantEligible {
+    param([Parameter(Mandatory)]$Variant)
+    if (LlamaCpp.Test-VariantEligible -Variant $Variant) { return $true }
+    $id = if ($Variant) { [string]$Variant.id } else { '<null>' }
+    throw ("Runtime variant '{0}' is not integrity-pinned and cannot be installed." -f $id)
+}
+
 function LlamaCpp.Select-Variant {
     <#
     Chooses the CUDA variant. Modern NVIDIA GPUs (Blackwell / Ada / newer
     Ampere) need the CUDA 13 build; older GPUs fall back to CUDA 12.4.
     Detection is conservative: without a usable signal we pick CUDA 12.4,
     which has the widest driver compatibility.
+    Only integrity-pinned (VERIFIED sha256) variants are eligible — F-01.
     #>
     param([Parameter(Mandatory)]$RuntimeManifest, $Hw)
     $prefer13 = $false
@@ -26,8 +51,15 @@ function LlamaCpp.Select-Variant {
         if ($n -match 'RTX 50|RTX 40|RTX 30|RTX 20') { $prefer13 = ($n -match 'RTX 50|RTX 40') }
     }
     $wanted = if ($prefer13) { 'cuda-13.3' } else { 'cuda-12.4' }
-    $variant = $RuntimeManifest.variants | Where-Object { $_.id -eq $wanted } | Select-Object -First 1
-    if (-not $variant) { $variant = $RuntimeManifest.variants | Select-Object -First 1 }
+    $variant = $RuntimeManifest.variants | Where-Object { $_.id -eq $wanted -and (LlamaCpp.Test-VariantEligible -Variant $_) } | Select-Object -First 1
+    if (-not $variant) {
+        # preferred variant not eligible → fall back to ANY eligible variant,
+        # never to an unverified one
+        $variant = $RuntimeManifest.variants | Where-Object { LlamaCpp.Test-VariantEligible -Variant $_ } | Select-Object -First 1
+    }
+    if (-not $variant) {
+        throw "no integrity-pinned runtime variant is available for this hardware"
+    }
     return $variant
 }
 
@@ -173,6 +205,7 @@ function LlamaCpp.Invoke-HealthCheck {
 
 Export-ModuleMember -Function LlamaCpp.Test-Installed, LlamaCpp.Get-ServerPath,
                               LlamaCpp.Select-Variant, LlamaCpp.Install-,
+                              LlamaCpp.Test-VariantEligible, LlamaCpp.Assert-VariantEligible,
                               LlamaCpp.Get-CommandArguments,
                               LlamaCpp.Get-HealthUrl, LlamaCpp.Get-ModelsUrl,
                               LlamaCpp.Start-Server, LlamaCpp.Invoke-HealthCheck

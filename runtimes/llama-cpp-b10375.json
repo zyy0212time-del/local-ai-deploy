@@ -27,8 +27,9 @@
       "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-12.4-x64.zip",
       "size_bytes": 250753377,
       "size_source": "GitHub release asset API (exact, verified 2026-09-06)",
-      "sha256": null,
-      "sha256_status": "NOT_VERIFIED — fallback variant; will be pinned the same way before it can be selected",
+      "sha256": "dd840b604c508b2f57f2ed467f70c711d1840c07b0d09a3bba8f6dfbd8b3da84",
+      "sha256_source": "locally computed over the full downloaded asset on 2026-09-07 (upstream publishes no per-asset checksum); enforced by the download SHA gate",
+      "sha256_status": "VERIFIED",
       "requires": "NVIDIA driver supporting CUDA 12.x",
       "preferred_for": "older NVIDIA GPUs not supported by CUDA 13 builds"
     }

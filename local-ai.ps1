@@ -11,7 +11,7 @@
     https://github.com/zyy0212time-del/reasoning-budget-arena
 
 .EXAMPLE
-    .\local-ai.ps1 install --dry-run
+    .\local-ai.ps1 install -DryRun
     .\local-ai.ps1 install
     .\local-ai.ps1 status
     .\local-ai.ps1 stop
@@ -175,12 +175,22 @@ switch ($Command) {
         # 1) runtime
         $runtimeReady = LlamaCpp.Test-Installed -Paths $Paths
         if (-not $runtimeReady) {
+            # F-01 fail-closed: refuse to install a runtime without a pinned,
+            # verified SHA256 — size-only is never enough for a runtime.
+            if (-not (LlamaCpp.Test-VariantEligible -Variant $variant)) {
+                Write-LaiError ("Runtime variant '{0}' is not integrity-pinned and cannot be installed." -f $variant.id)
+                exit 1
+            }
             Write-LaiInfo "downloading llama.cpp $($runtimeManifest.version) ($($variant.id))..."
             $zipPath = Join-Path $Paths.downloads $variant.asset
             $rd = Invoke-LaiDownload -Url $variant.url -DestinationPath $zipPath `
                 -ExpectedSha256 $variant.sha256 -ExpectedSize ([long]$variant.size_bytes) `
                 -DownloadsDir $Paths.downloads -ArtifactId ("runtime-" + $variant.id)
             if (-not $rd.ok) { Write-LaiError ("runtime download failed: {0}" -f $rd.error); exit 1 }
+            if (-not $rd.sha_verified) {
+                Write-LaiError ("Runtime variant '{0}' failed SHA verification; refusing to install." -f $variant.id)
+                exit 1
+            }
             Write-LaiInfo "extracting runtime..."
             Expand-Archive -LiteralPath $zipPath -DestinationPath $Paths.runtime -Force
         } else {

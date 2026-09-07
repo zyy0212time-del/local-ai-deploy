@@ -214,9 +214,43 @@ Assert-True -Condition (-not ($argv -contains '0.0.0.0')) -Name 'no 0.0.0.0 bind
 Assert-True -Condition ($argv -contains '--n-gpu-layers') -Name 'gpu layers configured'
 $rtm = Get-LaiRuntimeManifest -RepoRoot $RepoRoot
 $v = LlamaCpp.Select-Variant -RuntimeManifest $rtm -Hw (New-FakeHw -GpuName 'NVIDIA GeForce RTX 5060 Laptop GPU')
-Assert-Equal -Expected 'cuda-13.3' -Actual $v.id -Name 'modern NVIDIA -> CUDA 13.3'
-$vo = LlamaCpp.Select-Variant -RuntimeManifest $rtm -Hw (New-FakeHw -GpuName 'NVIDIA GeForce GTX 1080')
-Assert-Equal -Expected 'cuda-12.4' -Actual $vo.id -Name 'older NVIDIA -> CUDA 12.4'
+Assert-Equal -Expected 'cuda-13.3' -Actual $v.id -Name 'RTX 50 -> verified CUDA 13.3'
+$v40 = LlamaCpp.Select-Variant -RuntimeManifest $rtm -Hw (New-FakeHw -GpuName 'NVIDIA GeForce RTX 4070')
+Assert-Equal -Expected 'cuda-13.3' -Actual $v40.id -Name 'RTX 40 -> verified CUDA 13.3'
+$v30 = LlamaCpp.Select-Variant -RuntimeManifest $rtm -Hw (New-FakeHw -GpuName 'NVIDIA GeForce RTX 3060')
+Assert-Equal -Expected 'cuda-12.4' -Actual $v30.id -Name 'RTX 30 -> CUDA 12.4 (now pinned/VERIFIED)'
+
+Write-Host ""
+Write-Host "== F-01 runtime integrity fail-closed ==" -ForegroundColor Cyan
+$v124 = $rtm.variants | Where-Object { $_.id -eq 'cuda-12.4' } | Select-Object -First 1
+Assert-True -Condition ($null -ne $v124.sha256) -Name 'cuda-12.4 has a sha256'
+Assert-Equal -Expected 'VERIFIED' -Actual $v124.sha256_status -Name 'cuda-12.4 status VERIFIED'
+Assert-True -Condition ($v124.sha256 -match '^[0-9a-f]{64}$') -Name 'cuda-12.4 sha256 is 64-hex'
+$nullVariant = [pscustomobject]@{ id = 'fake-null'; sha256 = $null; sha256_status = 'NOT_VERIFIED' }
+$nvVariant = [pscustomobject]@{ id = 'fake-nv'; sha256 = ('a' * 64); sha256_status = 'NOT_VERIFIED' }
+$okVariant = [pscustomobject]@{ id = 'fake-ok'; sha256 = ('b' * 64); sha256_status = 'VERIFIED' }
+Assert-True -Condition (-not (LlamaCpp.Test-VariantEligible -Variant $nullVariant)) -Name 'sha256=null variant NOT eligible'
+Assert-True -Condition (-not (LlamaCpp.Test-VariantEligible -Variant $nvVariant)) -Name 'NOT_VERIFIED variant NOT eligible'
+Assert-True -Condition (LlamaCpp.Test-VariantEligible -Variant $okVariant) -Name 'VERIFIED variant eligible'
+$mixed = [pscustomobject]@{ variants = @($nullVariant, $okVariant) }
+$selMixed = LlamaCpp.Select-Variant -RuntimeManifest $mixed -Hw (New-FakeHw -GpuName 'NVIDIA GeForce RTX 3060')
+Assert-Equal -Expected 'fake-ok' -Actual $selMixed.id -Name 'selects only an eligible variant'
+$allBad = [pscustomobject]@{ variants = @($nullVariant, $nvVariant) }
+$threw = $false
+try { $null = LlamaCpp.Select-Variant -RuntimeManifest $allBad -Hw (New-FakeHw -GpuName 'NVIDIA GeForce RTX 3060') } catch { $threw = $true }
+Assert-True -Condition $threw -Name 'selection refuses when no variant is integrity-pinned'
+
+Write-Host ""
+Write-Host "== F-02 / F-03 public command syntax ==" -ForegroundColor Cyan
+$readme = [IO.File]::ReadAllText((Join-Path $RepoRoot 'README.md'))
+$cliTxt = [IO.File]::ReadAllText((Join-Path $RepoRoot 'local-ai.ps1'))
+$wrapTxt = [IO.File]::ReadAllText((Join-Path $RepoRoot 'Install-LocalAI.ps1'))
+Assert-True -Condition ($readme -notmatch '--dry-run') -Name 'README has no invalid --dry-run'
+Assert-True -Condition ($readme -match '-DryRun') -Name 'README uses valid -DryRun'
+Assert-True -Condition ($cliTxt -notmatch '--dry-run') -Name 'CLI help has no invalid --dry-run'
+Assert-True -Condition ($wrapTxt -notmatch "'--DryRun'|'--Yes'|'--Model'|'--Category'|'--Port'") -Name 'wrapper forwards named params (no GNU-style strings)'
+Assert-True -Condition ($wrapTxt -match 'Start-Process') -Name 'wrapper runs child process for reliable exit code'
+Assert-True -Condition ($wrapTxt -match 'ExitCode') -Name 'wrapper propagates child ExitCode'
 
 Write-Host ""
 Write-Host "== endpoint UX (Chat vs API) ==" -ForegroundColor Cyan

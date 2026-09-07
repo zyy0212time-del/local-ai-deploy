@@ -87,7 +87,7 @@ derived from it, never from vibes.
 
 ```
 .\local-ai.ps1 install          # detect → profile → download → verify → launch → health
-.\local-ai.ps1 install --dry-run  # show the full plan without changing anything
+.\local-ai.ps1 install -DryRun  # show the full plan without changing anything
 .\local-ai.ps1 start            # start the configured server
 .\local-ai.ps1 stop             # stop (only the process this install owns)
 .\local-ai.ps1 status           # profile / model / runtime / running state

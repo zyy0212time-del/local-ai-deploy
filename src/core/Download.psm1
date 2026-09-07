@@ -146,7 +146,9 @@ function Invoke-LaiDownload {
             if ($existingSize -eq $ExpectedSize) {
                 $h = Get-LaiFileSha256 -Path $DestinationPath
                 if ($h -eq $ExpectedSha256.ToLowerInvariant()) {
+                    # hash was actually compared and matched on this existing file
                     $result.ok = $true; $result.bytes = $existingSize; $result.sha256 = $h
+                    $result.sha_verified = $true
                     return $result
                 }
                 $result.error = "destination exists but SHA256 mismatch — refusing to overwrite"
