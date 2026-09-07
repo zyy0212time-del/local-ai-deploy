@@ -1,14 +1,17 @@
 # RELEASE-READINESS — LocalAIDeploy v0.1.0
 
-Audit date: 2026-09-06. Status: **READY FOR PUBLIC v0.1 REVIEW**
-(all P0 = 0, all P1 = 0; full-size real-install evidence loop completed — see
+Audit date: 2026-09-07. Status: **PUBLISHED — v0.1.0**
+(this document describes the final public v0.1.0 release state: all P0 = 0,
+all P1 = 0; full-size real-install evidence loop completed — see
 "Full-size evidence loop" below).
 
 ## Validation evidence
 
 | gate | result |
 |---|---|
-| deterministic unit tests | 48 passed / 0 failed |
+| deterministic unit tests | 85 passed / 0 failed |
+| adversarial wrapper-injection tests | 17 passed / 0 failed |
+| real CLI invocations | 12 passed / 0 failed |
 | real end-to-end (isolated root, tiny GGUF, port 18100) | PASS — runtime download 140 MB, extract, launch, 4-stage health, owned stop, exit confirm |
 | dry-run install (this machine: RTX 5060 Laptop 8 GB / 31.4 GB RAM) | PASS — correct profile, model, params, disk preflight, planned command |
 | privacy scan | PASS (0 hits after cleanup; re-scanned after every round) |
@@ -79,7 +82,7 @@ Audit date: 2026-09-06. Status: **READY FOR PUBLIC v0.1 REVIEW**
 | P0-4 | bad SHA accepted | PASS — model SHA gate exercised on 21 GB real bytes; runtime SHA now pinned and enforced |
 | P0-5 | privacy leak | PASS — 0 hits on final scan |
 | P0-6 | exposed server by default | PASS — 127.0.0.1 only, unit-tested |
-| P0-7 | command injection | PASS — args from manifests/internal state, quoted |
+| P0-7 | command injection | PASS — wrapper args travel as typed JSON → UTF-8 Base64 inert data → project-owned decode → PowerShell splatting, so user data cannot mint extra switches; `llama-server` args still come from manifests/internal state and are quoted. 17/17 adversarial injection tests passed. |
 | P0-8 | modification of unrelated local assets | PASS — unrelated model directory verified untouched after uninstall |
 
 ## P1 gates (must be zero)
