@@ -11,9 +11,10 @@
 
     That is a per-process override, not a machine-wide policy change.
 
-    Parameters are forwarded to local-ai.ps1 as real PowerShell named
-    parameters (never GNU-style "--x"), and the child exit code is propagated
-    so a failed invocation can never look like success.
+    Parameters are forwarded to local-ai.ps1 as structured JSON encoded as
+    UTF-8 Base64: raw Model/Category values never appear in a child command
+    line as syntax (F-03D / N-01). The child exit code is propagated so a
+    failed invocation can never look like success.
 
 .EXAMPLE
     .\Install-LocalAI.ps1 -DryRun
@@ -32,36 +33,39 @@ param(
 $ErrorActionPreference = 'Continue'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $cli = Join-Path $here 'local-ai.ps1'
-
-function Exit-Lai {
-    param([int]$Code)
-    exit $Code
-}
+$transport = Join-Path $here 'src\commands\install-transport.ps1'
+$transportModule = Join-Path $here 'src\commands\WrapperTransport.psm1'
 
 if (-not (Test-Path -LiteralPath $cli)) {
     Write-Host "local-ai.ps1 not found next to this script." -ForegroundColor Red
-    Exit-Lai 1
+    exit 1
+}
+if (-not (Test-Path -LiteralPath $transport)) {
+    Write-Host "install transport script not found next to this script." -ForegroundColor Red
+    exit 1
 }
 
-# build a real PowerShell argument list for the child process
-$childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $cli, 'install')
-if ($DryRun) { $childArgs += '-DryRun' }
-if ($Yes) { $childArgs += '-Yes' }
-if ($Model) { $childArgs += @('-Model', ('"{0}"' -f $Model)) }
-if ($Category) { $childArgs += @('-Category', ('"{0}"' -f $Category)) }
-if ($Port -gt 0) { $childArgs += @('-Port', [string]$Port) }
+Import-Module $transportModule -Force
+
+# structured payload: user data never touches the child command line as syntax
+$payload = ConvertTo-LaiPayload -DryRun:$DryRun -Yes:$Yes -Model $Model -Category $Category -Port $Port
+
+$childArgs = @(
+    '-NoProfile', '-ExecutionPolicy', 'Bypass',
+    '-File', $transport, '-Payload', $payload
+)
 
 $proc = $null
 try {
     $proc = Start-Process -FilePath 'powershell' -ArgumentList $childArgs -NoNewWindow -Wait -PassThru
 } catch {
     Write-Host ("failed to start installer: " + $_.Exception.Message) -ForegroundColor Red
-    Exit-Lai 1
+    exit 1
 }
 
 if ($null -eq $proc) {
     Write-Host "installer did not start." -ForegroundColor Red
-    Exit-Lai 1
+    exit 1
 }
 
 $code = $proc.ExitCode
@@ -69,4 +73,4 @@ if ($null -eq $code) {
     # no usable native exit code at all → never report success
     $code = 1
 }
-Exit-Lai ([int]$code)
+exit ([int]$code)

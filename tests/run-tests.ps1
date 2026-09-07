@@ -22,6 +22,7 @@ Import-Module (Join-Path $RepoRoot 'src\core\Download.psm1') -Force
 Import-Module (Join-Path $RepoRoot 'src\core\Process.psm1') -Force
 Import-Module (Join-Path $RepoRoot 'src\runtime\Runtime.psm1') -Force
 Import-Module (Join-Path $RepoRoot 'src\runtime\LlamaCpp.psm1') -Force -WarningAction SilentlyContinue
+Import-Module (Join-Path $RepoRoot 'src\commands\WrapperTransport.psm1') -Force
 
 $script:Passed = 0
 $script:Failed = 0
@@ -251,6 +252,34 @@ Assert-True -Condition ($cliTxt -notmatch '--dry-run') -Name 'CLI help has no in
 Assert-True -Condition ($wrapTxt -notmatch "'--DryRun'|'--Yes'|'--Model'|'--Category'|'--Port'") -Name 'wrapper forwards named params (no GNU-style strings)'
 Assert-True -Condition ($wrapTxt -match 'Start-Process') -Name 'wrapper runs child process for reliable exit code'
 Assert-True -Condition ($wrapTxt -match 'ExitCode') -Name 'wrapper propagates child ExitCode'
+
+Write-Host ""
+Write-Host "== N-01 wrapper transport round-trip ==" -ForegroundColor Cyan
+$rtCases = @(
+    @{ n = 'plain'; v = 'huihui-nex-q4' },
+    @{ n = 'spaces'; v = 'qwen fast q4' },
+    @{ n = 'double quote'; v = 'model" -Yes' },
+    @{ n = 'single quote'; v = "it`s a 'test'" },
+    @{ n = 'semicolon'; v = '; Write-Host INJECTED' },
+    @{ n = 'ampersand'; v = '& whoami' },
+    @{ n = 'leading dash'; v = '-Yes' },
+    @{ n = 'double dash'; v = '--Root' },
+    @{ n = 'subexpression'; v = '$(Get-Location)' },
+    @{ n = 'backtick'; v = '`" -Yes' },
+    @{ n = 'mixed quotes'; v = "a'b`"c" },
+    @{ n = 'unicode'; v = '模型-测试' }
+)
+foreach ($c in $rtCases) {
+    $b64 = ConvertTo-LaiPayload -Model $c.v
+    $back = ConvertFrom-LaiPayloadToSplat -Payload $b64
+    Assert-Equal -Expected $c.v -Actual $back['Model'] -Name ("round-trip: {0}" -f $c.n)
+}
+$b64plain = ConvertTo-LaiPayload -DryRun $true -Yes $true -Model 'm' -Category 'fast' -Port 18150
+Assert-True -Condition ($b64plain -match '^[A-Za-z0-9+/=]+$') -Name 'payload is inert base64 (no shell syntax)'
+$rtObj = ConvertFrom-LaiPayload -Payload $b64plain
+Assert-True -Condition ($rtObj.DryRun -and $rtObj.Yes) -Name 'switch flags round-trip'
+Assert-Equal -Expected 18150 -Actual $rtObj.Port -Name 'port round-trips'
+Assert-Equal -Expected 'fast' -Actual $rtObj.Category -Name 'category round-trips'
 
 Write-Host ""
 Write-Host "== endpoint UX (Chat vs API) ==" -ForegroundColor Cyan
