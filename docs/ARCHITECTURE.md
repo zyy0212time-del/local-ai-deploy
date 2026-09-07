@@ -4,8 +4,11 @@
 
 1. **Reliable installation beats fast installation.** The parameter planner
    always prefers a configuration that loads.
-2. **Pinned, verifiable artifacts.** Models: revision + size + SHA-256.
-   Runtime: pinned build tag + exact asset size. Nothing implicit.
+2. **Pinned, verifiable artifacts.** Models: revision + exact size + SHA-256.
+   Runtime: pinned build tag + exact asset size + pinned SHA-256. Upstream
+   llama.cpp publishes no per-asset checksum, so each runtime variant's SHA-256
+   is computed locally over the complete official release asset and pinned in
+   the runtime manifest. Nothing implicit.
 3. **Ownership everywhere.** Downloads carry a singleton lock; the server
    carries a PID+path ownership record. Nothing is killed or deleted that
    cannot be proven ours.
@@ -52,7 +55,7 @@ hardware detect ──► profile match ──► model manifest (schema-gated)
 disk preflight ◄── runtime manifest ◄── planner defaults
       │
       ▼
-runtime download ─► size gate ─► extract ─► llama-server.exe present?
+runtime download ─► size gate ─► SHA256 gate ─► extract ─► version probe
       │
       ▼
 model download ─► size gate ─► SHA256 gate ─► atomic rename
@@ -70,9 +73,13 @@ config.json ─► llama-server start (localhost) ─► health gate ─► READ
 - **Resume**: HTTP Range where supported; per-artifact `.part` + `.part.state`
   (url, expected size/sha, bytes, pid). A partial without matching state is
   never resumed. A partial larger than expected is never silently deleted.
-- **Integrity gate**: exact size AND SHA-256 (models) → atomic `Move-Item`.
-  Runtime assets have no upstream checksum → size gate only, explicitly
-  marked `sha_verified=false` in download results and manifests.
+- **Integrity gate**: exact size AND SHA-256 → atomic `Move-Item`, for models
+  and runtime assets alike. Upstream llama.cpp publishes no per-asset
+  checksum, so each runtime variant's SHA-256 is computed locally over the
+  complete official asset and pinned as `sha256_status: VERIFIED`. A variant
+  whose SHA-256 is missing, malformed or not VERIFIED is fail-closed: it can
+  be neither selected nor installed (`LlamaCpp.Test-VariantEligible`), and a
+  runtime download that fails the SHA gate is never extracted.
 - **Retry**: bounded attempts with exponential backoff; a rejected Range
   (416/501/403) restarts from zero over the lock-owned partial.
 
